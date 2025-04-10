@@ -49,8 +49,11 @@ void MainWindow::on_pbOpen_clicked()
 void MainWindow::on_port_ready_read()
 {
 
-    auto data = port->readAll();
-    ui->plainTextEdit->insertPlainText(data);
+    QByteArray data = port->readAll();
+
+        // Преобразуем данные в HEX с пробелами и добавим в текстовое поле
+        QString hexData = data.toHex(' ').toUpper();
+        ui->plainTextEdit->appendHtml(QString("<font color='blue'>Принято: %1</font>").arg(hexData));
 }
 
 void MainWindow::on_cleabutt_clicked()
@@ -61,14 +64,28 @@ void MainWindow::on_cleabutt_clicked()
 
 void MainWindow::on_pushButton_clicked()
 {
-     QString text = ui->linebyte->text();
-     if (port->isOpen()) {
-             port->write(text.toUtf8());
-             ui->plainTextEdit->appendPlainText("Отправлено в порт: " + text);
-         } else {
-             ui->plainTextEdit->appendHtml("<font color='red'>COM порт не открыт!</font> ");
-         }
+    QString text = ui->linebyte->text().trimmed().toUpper().replace(" ", ""); // Удаляем пробелы и лишние символы
 
-         ui->linebyte->clear();
+       // Проверка на валидность HEX-строки
+       if (text.isEmpty() || text.length() % 2 != 0 || !text.contains(QRegularExpression("^[0-9A-F]+$"))) {
+           ui->plainTextEdit->appendHtml("<font color='red'>Ошибка: неверный формат HEX (пример: AA0800...)</font><br>");
+           ui->linebyte->clear();
+           return;
+       }
+
+       // Преобразование строки в байты
+       QByteArray data = QByteArray::fromHex(text.toLatin1());
+
+       if (port->isOpen()) {
+           port->write(data);
+           ui->plainTextEdit->appendHtml(
+               QString("<br><font color='green'>Отправлено: %1</font><br>")
+               .arg(QString(data.toHex(' ').toUpper())) // Форматирование с пробелами
+           );
+       } else {
+           ui->plainTextEdit->appendHtml("<font color='red'>COM порт не открыт!</font><br>");
+       }
+
+       ui->linebyte->clear();
 }
 

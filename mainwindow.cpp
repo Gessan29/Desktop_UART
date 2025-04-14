@@ -53,7 +53,7 @@ void MainWindow::on_port_ready_read()
 
         // Преобразуем данные в HEX с пробелами и добавим в текстовое поле
         QString hexData = data.toHex(' ').toUpper();
-        ui->plainTextEdit->appendHtml(QString("<font color='blue'>Принято: %1</font>").arg(hexData));
+        ui->plainTextEdit->appendHtml(QString("<font color='blue'>%1</font>").arg(hexData));
 }
 
 void MainWindow::on_cleabutt_clicked()
@@ -79,7 +79,7 @@ void MainWindow::on_pushButton_clicked()
        if (port->isOpen()) {
            port->write(data);
            ui->plainTextEdit->appendHtml(
-               QString("<br><font color='green'>Отправлено: %1</font><br>")
+               QString("<br><font color='green'>%1</font><br>")
                .arg(QString(data.toHex(' ').toUpper())) // Форматирование с пробелами
            );
        } else {

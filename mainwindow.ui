@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>539</width>
-    <height>418</height>
+    <width>857</width>
+    <height>635</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,16 +23,32 @@
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
            <widget class="QPushButton" name="pbOpen">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
             <property name="text">
              <string>Открыть порт</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="uart" name="cmbxComPort"/>
+           <widget class="uart" name="cmbxComPort">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QPushButton" name="cleabutt">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
             <property name="text">
              <string>Отчистить все</string>
             </property>
@@ -40,6 +56,11 @@
           </item>
           <item>
            <widget class="QSpinBox" name="sbxBaudrate">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -64,6 +85,11 @@
         </item>
         <item>
          <widget class="QPlainTextEdit" name="plainTextEdit">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -76,10 +102,21 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
-           <widget class="QLineEdit" name="linebyte"/>
+           <widget class="QLineEdit" name="linebyte">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QPushButton" name="pushButton">
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
             <property name="text">
              <string>Отправить</string>
             </property>
@@ -98,8 +135,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>539</width>
-     <height>21</height>
+     <width>857</width>
+     <height>25</height>
     </rect>
    </property>
   </widget>

@@ -1,21 +1,24 @@
 #include "mainwindow.h"
-#include "qdebug.h"
 #include "ui_mainwindow.h"
-#include <QFile>
-#include <QClipboard>
 #include <QTimer>
-#include <cmath>
+
+extern "C" {
+#include "protocol_parser.h"
+}
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , port(new QSerialPort(this))
-
+    , sendTimer(new QTimer(this))
 {
-
     ui->setupUi(this);
-    //connect(ui->pushButton, &QPushButton::clicked, this, &MainWindow::on_pushButton_clicked);
+
+    // Настройка соединений
+    connect(sendTimer, &QTimer::timeout, this, &MainWindow::sendNextPacket);
     connect(port, &QSerialPort::readyRead, this, &MainWindow::on_port_ready_read);
+
+    // Настройка параметров порта
     port->setDataBits(QSerialPort::Data8);
     port->setParity(QSerialPort::NoParity);
     port->setStopBits(QSerialPort::OneStop);
@@ -26,34 +29,108 @@ MainWindow::~MainWindow()
 {
     delete ui;
     port->close();
-    delete port;
 }
 
+// Открытие/закрытие порта
 void MainWindow::on_pbOpen_clicked()
 {
-    if(port->isOpen()) {
+    if (port->isOpen()) {
         port->close();
-        ui->pbOpen->setText(tr("Открыть порт"));
+        ui->pbOpen->setText("Открыть порт");
+        return;
+    }
+
+    port->setBaudRate(ui->sbxBaudrate->value());
+    port->setPortName(ui->cmbxComPort->currentText());
+
+    if (port->open(QIODevice::ReadWrite)) {
+        ui->pbOpen->setText("Закрыть порт");
+        ui->plainTextEdit->appendHtml("<font color='green'>Порт открыт!</font>");
     } else {
-        port->setBaudRate(ui->sbxBaudrate->value());
-        port->setPortName(ui->cmbxComPort->currentText());
-        if(!port->open(QIODevice::ReadWrite)) {
-            ui->plainTextEdit->appendPlainText(tr("невозможно открыть порт ") + ui->cmbxComPort->currentText());
-        } else {
-            ui->pbOpen->setText(tr("Закрыть порт"));
-            ui->plainTextEdit->appendHtml("<font color='green'>порт успешно открыт!</font> ");
-        }
+        ui->plainTextEdit->appendHtml("<font color='red'>Ошибка открытия порта!</font>");
     }
 }
 
+// Обработка входящих данных
 void MainWindow::on_port_ready_read()
 {
+    const QByteArray data = port->readAll();
+    ui->plainTextEdit->appendHtml(QString("<font color='blue'>%1</font>").arg(QString::fromUtf8(data.toHex(' ').toUpper())));
 
-    QByteArray data = port->readAll();
+    for (const char byte : data) {
+        const parser_result res = process_rx_byte(&parser, static_cast<uint8_t>(byte));
 
-        // Преобразуем данные в HEX с пробелами и добавим в текстовое поле
-        QString hexData = data.toHex(' ').toUpper();
-        ui->plainTextEdit->appendHtml(QString("<font color='blue'>%1</font>").arg(hexData));
+        if (res == PARSER_DONE) handleParsedPacket();
+        else if (res == PARSER_ERROR) handleParserError();
+    }
+}
+
+// Управление тестированием
+void MainWindow::on_pushButton_clicked()
+{
+    if (!port->isOpen()) {
+        ui->plainTextEdit->appendHtml("<font color='red'>Порт закрыт!</font>");
+        return;
+    }
+
+    isTesting = !isTesting;
+    ui->pushButton->setText(isTesting ? "Остановить" : "Начать");
+
+    if (isTesting) startTesting();
+    else stopTesting();
+}
+
+// Логика тестирования
+void MainWindow::startTesting()
+{
+    currentPacketIndex = 0;
+    testPackets = {
+        QByteArray::fromHex("AA08000100010000000036"),
+        QByteArray::fromHex("AA080001000000000001CA"),
+        QByteArray::fromHex("AA0800010400000000F00A")
+    };
+    ui->plainTextEdit->appendHtml("<font color='green'>Тестирование запущено</font>");
+    sendNextPacket();
+}
+
+void MainWindow::sendNextPacket()
+{
+    if (!isTesting || currentPacketIndex >= testPackets.size()) {
+        stopTesting();
+        return;
+    }
+
+    const QByteArray packet = testPackets[currentPacketIndex++];
+    port->write(packet);
+    ui->plainTextEdit->appendHtml(QString("<font color='green'>Отправлен пакет %1: %2</font>")
+                                 .arg(currentPacketIndex)
+                                 .arg(QString::fromUtf8(packet.toHex(' ').toUpper())));
+    sendTimer->start(1500);
+}
+
+// Вспомогательные методы
+void MainWindow::handleParsedPacket()
+{
+    ui->plainTextEdit->appendHtml("<font color='green'>Пакет разобран</font>");
+
+    if (parser.buffer_length > 4 && parser.buffer[4] == 0x01) {
+        ui->plainTextEdit->appendHtml("<font color='red'>Ошибка: 0x01</font>");
+        stopTesting();
+    }
+}
+
+void MainWindow::handleParserError()
+{
+    ui->plainTextEdit->appendHtml("<font color='red'>Ошибка разбора</font>");
+    parser.state = protocol_parser::STATE_SYNC;
+}
+
+void MainWindow::stopTesting()
+{
+    sendTimer->stop();
+    testPackets.clear();
+    ui->pushButton->setText("Начать");
+    ui->plainTextEdit->appendHtml("<font color='orange'>Тестирование остановлено</font>");
 }
 
 void MainWindow::on_cleabutt_clicked()
@@ -61,31 +138,4 @@ void MainWindow::on_cleabutt_clicked()
     ui->plainTextEdit->clear();
 }
 
-
-void MainWindow::on_pushButton_clicked()
-{
-    QString text = ui->linebyte->text().trimmed().toUpper().replace(" ", ""); // Удаляем пробелы и лишние символы
-
-       // Проверка на валидность HEX-строки
-       if (text.isEmpty() || text.length() % 2 != 0 || !text.contains(QRegularExpression("^[0-9A-F]+$"))) {
-           ui->plainTextEdit->appendHtml("<font color='red'>Ошибка: неверный формат HEX (пример: AA0800...)</font><br>");
-           ui->linebyte->clear();
-           return;
-       }
-
-       // Преобразование строки в байты
-       QByteArray data = QByteArray::fromHex(text.toLatin1());
-
-       if (port->isOpen()) {
-           port->write(data);
-           ui->plainTextEdit->appendHtml(
-               QString("<br><font color='green'>%1</font><br>")
-               .arg(QString(data.toHex(' ').toUpper())) // Форматирование с пробелами
-           );
-       } else {
-           ui->plainTextEdit->appendHtml("<font color='red'>COM порт не открыт!</font><br>");
-       }
-
-       ui->linebyte->clear();
-}
 

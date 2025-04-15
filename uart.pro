@@ -11,10 +11,13 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    protocol_parser.c \
     uart.cpp
+
 
 HEADERS += \
     mainwindow.h \
+    protocol_parser.h \
     uart.h
 
 FORMS += \

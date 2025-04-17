@@ -38,6 +38,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QSerialPort *port;
+    QTimer* responseTimer;
     struct protocol_parser parser;
     QList<QByteArray> testPackets;
     int currentPacketIndex = 0;

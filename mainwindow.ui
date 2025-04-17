@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>857</width>
-    <height>635</height>
+    <width>572</width>
+    <height>463</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -85,6 +85,12 @@
         </item>
         <item>
          <widget class="QPlainTextEdit" name="plainTextEdit">
+          <property name="maximumSize">
+           <size>
+            <width>15000000</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="font">
            <font>
             <pointsize>12</pointsize>
@@ -125,7 +131,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>857</width>
+     <width>572</width>
      <height>21</height>
     </rect>
    </property>

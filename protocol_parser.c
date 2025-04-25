@@ -8,6 +8,57 @@ static uint16_t update_crc(uint16_t crc, uint8_t byte)
     return crc16_table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
 }
 
+static uint16_t calculate_crc(const uint8_t* array, int size) {
+   uint16_t crc = CRC_INIT; // #define CRC_INIT 0xffff
+   int i;
+   for (i = 0; i < size; i++) {
+       crc = update_crc(crc, array[i]);
+   }
+   return crc;
+}
+
+void serialize_reply(struct for_transfer* data) {
+    uint16_t crc;
+    static uint16_t PAYLOAD_SIZE;
+
+        if (data->cmd == 0)
+        {
+            data->buf = (uint8_t*)malloc(7 * sizeof(uint8_t));
+            if (data->buf == NULL)
+            { return; }
+
+            PAYLOAD_SIZE = 1;
+            data->buf[0] = SYNC_BYTE;
+            data->buf[1] = ((PAYLOAD_SIZE + DATA_SIZE_OFFSET) >> 0) & 0xff;
+            data->buf[2] = ((PAYLOAD_SIZE + DATA_SIZE_OFFSET) >> 8) & 0xff;
+            data->buf[3] = data->cmd;
+            data->buf[4] = data->status;
+            crc = calculate_crc(data->buf + 3, PAYLOAD_SIZE + 1);
+            data->buf[5] = (crc >> 0) & 0xff;
+            data->buf[6] = (crc >> 8) & 0xff;
+            return;
+        }
+        data->buf = (uint8_t*)malloc(11 * sizeof(uint8_t));
+        if (data->buf == NULL)
+        { return; }
+        PAYLOAD_SIZE = 5;
+        data->buf[0] = SYNC_BYTE;
+        data->buf[1] = ((PAYLOAD_SIZE + DATA_SIZE_OFFSET) >> 0) & 0xff;
+        data->buf[2] = ((PAYLOAD_SIZE + DATA_SIZE_OFFSET) >> 8) & 0xff;
+        data->buf[3] = data->cmd;
+        data->buf[4] = data->status;
+        int a = 0;
+        for (size_t i = 5; i < 9; i++)
+        {
+            data->buf[i] = data->value[a];
+            a++;
+        }
+        crc = calculate_crc(data->buf + 3, PAYLOAD_SIZE + 1);
+        data->buf[9] = (crc >> 0) & 0xff;
+        data->buf[10] = (crc >> 8) & 0xff;
+
+}
+
 enum parser_result process_rx_byte(struct protocol_parser *parser, uint8_t byte) {
     enum parser_result ret = PARSER_OK;
 

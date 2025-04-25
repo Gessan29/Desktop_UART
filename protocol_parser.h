@@ -33,6 +33,16 @@ struct protocol_parser {
     uint16_t crc;                   // Накопленная контрольная сумма.
 };
 
+struct for_transfer
+{
+    uint8_t* buf;
+    size_t buf_size;
+    uint8_t cmd;
+    uint8_t status;
+    uint8_t* value;
+};
+
 //static uint16_t update_crc(uint16_t crc, uint8_t byte);
 enum parser_result process_rx_byte(struct protocol_parser *parser, uint8_t byte);
+void serialize_reply(struct for_transfer* data);
 #endif // PROTOCOL_PARSER_H

@@ -11,7 +11,7 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    protocol_parser.c \
+    protocol_parser.cpp \
     uart.cpp
 
 

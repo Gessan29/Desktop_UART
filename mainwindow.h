@@ -5,16 +5,14 @@
 #include <QSerialPort>
 #include <QSerialPortInfo>
 #include <QVector>
-
-extern "C" {
 #include "protocol_parser.h"
-}
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-//QList<QByteArray> testPackets;
+QString description (const QVector<uint8_t>& packet);
 
 class MainWindow : public QMainWindow
 {
@@ -35,14 +33,16 @@ private slots:
     void handleParsedPacket();
     void startTesting();
 
+
 private:
     Ui::MainWindow *ui;
     QSerialPort *port;
-    QTimer* responseTimer;
+    QTimer* sendTimer; // таймер для отправки следующих пакетов через задержку
+    QTimer* responseTimer; // таймер ожидания ответа от МК
     struct protocol_parser parser;
-    QList<QByteArray> testPackets;
-    int currentPacketIndex = 0;
-    bool isTesting = false;
-    QTimer* sendTimer;
+    QVector<QVector<uint8_t>> testPackets;
+    int currentPacketIndex = 0; //индекс текущего пакета в очереди
+    bool isTesting = false; // флаг, идет ли сейчас тестирование
+    void sendPacket(uint8_t cmd, uint8_t status, uint8_t value);
 };
 #endif // MAINWINDOW_H

@@ -13,6 +13,7 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 QString description (const QVector<uint8_t>& packet);
+QString result (const QVector<uint8_t>& packet);
 
 class MainWindow : public QMainWindow
 {
@@ -32,8 +33,8 @@ private slots:
     void handleParserError();
     void handleParsedPacket();
     void startTesting();
-
-
+    void result(uint8_t* packet);
+    void handleCaseCommon(uint16_t sample, const QString& labelText);
 private:
     Ui::MainWindow *ui;
     QSerialPort *port;
@@ -43,6 +44,7 @@ private:
     QVector<QVector<uint8_t>> testPackets;
     int currentPacketIndex = 0; //индекс текущего пакета в очереди
     bool isTesting = false; // флаг, идет ли сейчас тестирование
+    bool emergencyStopTriggered = false;
     void sendPacket(uint8_t cmd, uint8_t status, uint8_t value);
 };
 #endif // MAINWINDOW_H

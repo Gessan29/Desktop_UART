@@ -3,52 +3,49 @@
 #include <QTimer>
 #include <QVector>
 
-//extern "C" {
-//#include "protocol_parser.h"
-//}
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , port(new QSerialPort(this))
     , sendTimer(new QTimer(this))
-    , responseTimer(new QTimer(this)) // Новый таймер ожидания ответа
+    , responseTimer(new QTimer(this))
 {
     ui->setupUi(this);
+    setupPort();
+    setupPlot();
+    setupConnections();
     parser.state = protocol_parser::STATE_SYNC;
-    // Настройка соединений
-    connect(sendTimer, &QTimer::timeout, this, &MainWindow::sendNextPacket);
-    connect(port, &QSerialPort::readyRead, this, &MainWindow::on_port_ready_read);
-
-    // Настройка таймера ожидания ответа
-    responseTimer->setSingleShot(true);
-    connect(responseTimer, &QTimer::timeout, this, [=]() {
-        ui->plainTextEdit->appendHtml("<font color='red'>Ошибка: не получен ответ в течение 10 секунд</font>");
-        stopTesting();
-    });
-
-    // Настройка параметров порта
-    port->setDataBits(QSerialPort::Data8);
-    port->setParity(QSerialPort::NoParity);
-    port->setStopBits(QSerialPort::OneStop);
-    port->setFlowControl(QSerialPort::NoFlowControl);
-
-    ui->customPlot->addGraph();
-       ui->customPlot->xAxis->setLabel("Номер точки");
-       ui->customPlot->yAxis->setLabel("Напряжение, В");
-       ui->customPlot->xAxis->setRange(0, 99);
-       ui->customPlot->yAxis->setRange(0, 3.3);
-       ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     delete ui;
     port->close();
 }
 
-void MainWindow::on_pbOpen_clicked()
-{
+void MainWindow::setupConnections() {
+    connect(sendTimer, &QTimer::timeout, this, &MainWindow::sendNextPacket);
+    connect(port, &QSerialPort::readyRead, this, &MainWindow::on_port_ready_read);
+    connect(responseTimer, &QTimer::timeout, this, &MainWindow::onResponseTimeout);
+    responseTimer->setSingleShot(true);
+}
+
+void MainWindow::setupPort() {
+    port->setDataBits(QSerialPort::Data8);
+    port->setParity(QSerialPort::NoParity);
+    port->setStopBits(QSerialPort::OneStop);
+    port->setFlowControl(QSerialPort::NoFlowControl);
+}
+
+void MainWindow::setupPlot() {
+    ui->customPlot->addGraph();
+    ui->customPlot->xAxis->setLabel("Номер точки");
+    ui->customPlot->yAxis->setLabel("Напряжение, В");
+    ui->customPlot->xAxis->setRange(0, 99);
+    ui->customPlot->yAxis->setRange(0, 3.3);
+    ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+}
+
+void MainWindow::on_pbOpen_clicked() {
     if (port->isOpen()) {
         port->close();
         ui->pbOpen->setText("Открыть порт");
@@ -60,37 +57,45 @@ void MainWindow::on_pbOpen_clicked()
 
     if (port->open(QIODevice::ReadWrite)) {
         ui->pbOpen->setText("Закрыть порт");
-        ui->plainTextEdit->appendHtml("<font color='green'>Порт открыт!</font>");
+        logHtml("<font color='green'>Порт открыт!</font>");
     } else {
-        ui->plainTextEdit->appendHtml("<font color='red'>Ошибка открытия порта!</font>");
+        logHtml("<font color='red'>Ошибка открытия порта!</font>");
     }
 }
 
-void MainWindow::on_port_ready_read()
-{
+void MainWindow::onResponseTimeout() {
+    logHtml("<font color='red'>Ошибка: не получен ответ в течение 10 секунд</font>");
+    stopTesting();
+}
+
+void MainWindow::on_port_ready_read() {
     const QByteArray data = port->readAll();
-    ui->plainTextEdit->appendHtml(QString("<font color='blue'>%1</font>").arg(QString::fromUtf8(data.toHex(' ').toUpper())));
+    logHtml(QString("<font color='blue'>%1</font>").arg(QString::fromUtf8(data.toHex(' ').toUpper())));
 
     for (const char byte : data) {
         const parser_result res = process_rx_byte(&parser, static_cast<uint8_t>(byte));
-
         if (res == PARSER_DONE) handleParsedPacket();
         else if (res == PARSER_ERROR) handleParserError();
     }
 }
 
-void MainWindow::on_pushButton_clicked()
-{
+void MainWindow::on_pushButton_clicked() {
     if (!port->isOpen()) {
-        ui->plainTextEdit->appendHtml("<font color='red'>Порт закрыт!</font>");
+        logHtml("<font color='red'>Порт закрыт!</font>");
         return;
     }
 
     isTesting = !isTesting;
     ui->pushButton->setText(isTesting ? "Остановить" : "Начать");
+    isTesting ? startTesting() : stopTesting();
+}
 
-    if (isTesting) startTesting();
-    else stopTesting();
+void MainWindow::logHtml(const QString& message) {
+    ui->plainTextEdit->appendHtml(message);
+}
+
+void MainWindow::logPlain(const QString& message) {
+    ui->plainTextEdit->appendPlainText(message);
 }
 
 void MainWindow::startTesting()
@@ -108,7 +113,8 @@ void MainWindow::startTesting()
         {0x01, 0x04, 0x04, 0x00, 0x00, 0x00}, {0x01, 0x04, 0x05, 0x00, 0x00, 0x00}, {0x01, 0x04, 0x06, 0x00, 0x00, 0x00}, {0x01, 0x04, 0x07, 0x00, 0x00, 0x00},
         {0x01, 0x04, 0x08, 0x00, 0x00, 0x00}, {0x01, 0x04, 0x09, 0x00, 0x00, 0x00}, {0x01, 0x04, 0x0A, 0x00, 0x00, 0x00},
         //
-        {0x00, 0x05}
+        {0x00, 0x05},
+        {0x00, 0x06}
     };
     ui->plainTextEdit->appendHtml("<font color='orange'>Тестирование запущено</font>");
     sendNextPacket();
@@ -289,12 +295,50 @@ void MainWindow::result(uint8_t* packet){
         handleCaseCommon(6000, "Контрольная точка +5 В (Laser)");
         return;
     case 24:
-        handleCaseCommon(6000, "Контрольная точка +2.048 В (VrefDAC)");
+        handleCaseCommon(0, "Контрольная точка +2.048 В (VrefDAC)");
+        sendTimer->stop();
+        responseTimer->stop();
+        showDialog();
         return;
-    case 25:
+    case 25:{
         QByteArray rawData(reinterpret_cast<const char*>(parser.buffer), parser.buffer_length);
         plotAdcData(rawData);
+        return; }
+    case 26:
+        handleCaseCommon(0, "Ток элемента Пельтье");
         return;
+    }
+}
+
+void MainWindow::showDialog(){
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Выполните условие");
+    msgBox.setText("Прошейте МК и ПЛИС");
+    QPushButton *btnFlash = msgBox.addButton("Ок", QMessageBox::AcceptRole);
+    QPushButton *btnSkip = msgBox.addButton("Не удалось прошить", QMessageBox::RejectRole);
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == btnFlash) {
+        ui->plainTextEdit->appendHtml("<font color='green'>МК и ПЛИС прошиты. Продолжение теста...</font>");
+    } else {
+        ui->plainTextEdit->appendHtml("<font color='red'>МК и ПЛИС не прошиты.</font>");
+        ui->plainTextEdit->appendHtml("<font color='red'>Завершение тестирования...</font>");
+        if (!emergencyStopTriggered) {
+                   emergencyStopTriggered = true;
+
+                   testPackets = {
+                       {0x01, 0x00, 0x00, 0x00, 0x00, 0x00},
+                       {0x01, 0x07, 0x00, 0x00, 0x00, 0x00},
+                       {0x01, 0x03, 0x00, 0x00, 0x00, 0x00}
+                   };
+
+                   currentPacketIndex = 0;
+                   ui->plainTextEdit->appendHtml("<font color='orange'>Повтор команд для отключения питания...</font>");
+                   sendTimer->start(100);
+                   return;
+               }
+        stopTesting();
+
     }
 }
 
@@ -312,9 +356,7 @@ void MainWindow::plotAdcData(const QByteArray& byteArray) {
 
            uint8_t low = static_cast<uint8_t>(byteArray[index]);
            uint8_t high = static_cast<uint8_t>(byteArray[index + 1]);
-           uint16_t value = (high << 8) | low; // Big-endian, так как в примере 04 4D → 0x044D = 1101
-
-           // Конвертация в напряжение (предположим 12-битный АЦП, 3.3 В)
+           uint16_t value = (high << 8) | low;
            x[i] = i;
            y[i] = static_cast<double>(value) * (3.3 / 4095.0);
        }
@@ -375,17 +417,63 @@ void MainWindow::handleParsedPacket()
             }
         case 0x01:
             ui->plainTextEdit->appendHtml("<font color='red'>Ошибка выполнения команды (код ошибки: 0x01)</font>");
+            result(parser.buffer);
             if (isTesting) {
-                sendTimer->start(300);
+                sendTimer->start(200);
                 return; }
         case 0x02:
             ui->plainTextEdit->appendHtml("<font color='red'>Несуществующая команда (код ошибки: 0x02)</font>");
+            ui->plainTextEdit->appendHtml("<font color='red'>Завершение тестирования...</font>");
+            if (!emergencyStopTriggered) {
+                       emergencyStopTriggered = true;
+
+                       testPackets = {
+                           {0x01, 0x00, 0x00, 0x00, 0x00, 0x00},
+                           {0x01, 0x07, 0x00, 0x00, 0x00, 0x00},
+                           {0x01, 0x03, 0x00, 0x00, 0x00, 0x00}
+                       };
+
+                       currentPacketIndex = 0;
+                       ui->plainTextEdit->appendHtml("<font color='orange'>Повтор команд для отключения питания...</font>");
+                       sendTimer->start(100);
+                       return;
+                   }
             break;
         case 0x03:
             ui->plainTextEdit->appendHtml("<font color='red'>Превышено время выполнения команды (код ошибки: 0x03)</font>");
+            ui->plainTextEdit->appendHtml("<font color='red'>Завершение тестирования...</font>");
+            if (!emergencyStopTriggered) {
+                       emergencyStopTriggered = true;
+
+                       testPackets = {
+                           {0x01, 0x00, 0x00, 0x00, 0x00, 0x00},
+                           {0x01, 0x07, 0x00, 0x00, 0x00, 0x00},
+                           {0x01, 0x03, 0x00, 0x00, 0x00, 0x00}
+                       };
+
+                       currentPacketIndex = 0;
+                       ui->plainTextEdit->appendHtml("<font color='orange'>Повтор команд для отключения питания...</font>");
+                       sendTimer->start(100);
+                       return;
+                   }
             break;
         case 0x04:
             ui->plainTextEdit->appendHtml("<font color='red'>Ошибка размера данных команды (код ошибки: 0x04)</font>");
+            ui->plainTextEdit->appendHtml("<font color='red'>Завершение тестирования...</font>");
+            if (!emergencyStopTriggered) {
+                       emergencyStopTriggered = true;
+
+                       testPackets = {
+                           {0x01, 0x00, 0x00, 0x00, 0x00, 0x00},
+                           {0x01, 0x07, 0x00, 0x00, 0x00, 0x00},
+                           {0x01, 0x03, 0x00, 0x00, 0x00, 0x00}
+                       };
+
+                       currentPacketIndex = 0;
+                       ui->plainTextEdit->appendHtml("<font color='orange'>Повтор команд для отключения питания...</font>");
+                       sendTimer->start(100);
+                       return;
+                   }
             break;
         }
         stopTesting();

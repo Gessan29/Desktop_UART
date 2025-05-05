@@ -36,6 +36,13 @@ private slots:
     void result(uint8_t* packet);
     void handleCaseCommon(uint16_t sample, const QString& labelText);
     void plotAdcData(const QByteArray& byteArray);
+    void showDialog();
+    void setupPort();
+    void setupPlot();
+    void setupConnections();
+    void onResponseTimeout();
+    void logHtml(const QString& message);
+    void logPlain(const QString& message);
 private:
     Ui::MainWindow *ui;
     QSerialPort *port;
@@ -47,7 +54,6 @@ private:
     bool isTesting = false; // флаг, идет ли сейчас тестирование
     bool emergencyStopTriggered = false;
     void sendPacket(uint8_t cmd, uint8_t status, uint8_t value);
-    double xBegin, xEnd, h, X;
-    int N;
+
 };
 #endif // MAINWINDOW_H

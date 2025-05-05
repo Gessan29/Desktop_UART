@@ -32,6 +32,13 @@ MainWindow::MainWindow(QWidget *parent)
     port->setParity(QSerialPort::NoParity);
     port->setStopBits(QSerialPort::OneStop);
     port->setFlowControl(QSerialPort::NoFlowControl);
+
+    ui->customPlot->addGraph();
+       ui->customPlot->xAxis->setLabel("Номер точки");
+       ui->customPlot->yAxis->setLabel("Напряжение, В");
+       ui->customPlot->xAxis->setRange(0, 99);
+       ui->customPlot->yAxis->setRange(0, 3.3);
+       ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
 }
 
 MainWindow::~MainWindow()
@@ -233,7 +240,6 @@ void MainWindow::result(uint8_t* packet){
                        };
 
                        currentPacketIndex = 0;
-                       ui->plainTextEdit->appendHtml("<font color='orange'>Повтор команд для отключения питания...</font>");
                        sendTimer->start(100);
                        return;
                    }
@@ -285,13 +291,50 @@ void MainWindow::result(uint8_t* packet){
     case 24:
         handleCaseCommon(6000, "Контрольная точка +2.048 В (VrefDAC)");
         return;
+    case 25:
+        QByteArray rawData(reinterpret_cast<const char*>(parser.buffer), parser.buffer_length);
+        plotAdcData(rawData);
+        return;
     }
+}
+
+void MainWindow::plotAdcData(const QByteArray& byteArray) {
+    if (byteArray.size() < 201) {
+        ui->plainTextEdit->appendHtml("<font color='red'>Недостаточно данных для построения графика</font>");
+        return;
+    }
+    QVector<double> x(100), y(100);
+    int dataStartIndex = 1;
+
+    for (int i = 0; i < 100; ++i) {
+           int index = dataStartIndex + i * 2;
+           if (index + 1 >= byteArray.size()) break;
+
+           uint8_t low = static_cast<uint8_t>(byteArray[index]);
+           uint8_t high = static_cast<uint8_t>(byteArray[index + 1]);
+           uint16_t value = (high << 8) | low; // Big-endian, так как в примере 04 4D → 0x044D = 1101
+
+           // Конвертация в напряжение (предположим 12-битный АЦП, 3.3 В)
+           x[i] = i;
+           y[i] = static_cast<double>(value) * (3.3 / 4095.0);
+       }
+
+       // Очистка и настройка графика
+       ui->customPlot->clearGraphs();
+       ui->customPlot->addGraph();
+       ui->customPlot->graph(0)->setData(x, y);
+       ui->customPlot->xAxis->setLabel("Номер точки (сигнал лазерного диода)");
+       ui->customPlot->yAxis->setLabel("Напряжение, В");
+       ui->customPlot->xAxis->setRange(0, 99);
+       ui->customPlot->yAxis->setRange(0, 3.3);
+       ui->customPlot->replot();
+       ui->plainTextEdit->appendHtml("<font color='green'>Снятно 100 точек напряжений, построен график.</font>");
 }
 
 void MainWindow::handleCaseCommon(uint16_t sample, const QString& labelText)
 {
-    const uint16_t accuracy = 300;
-    uint16_t data = (parser.buffer[2] << 8) | parser.buffer[1];
+    const uint16_t accuracy = 10000; // 300
+    uint16_t data = 10000; //(parser.buffer[2] << 8) | parser.buffer[1];
     double volts = data / 1000.0;
 
     if (data >= sample - accuracy && data <= sample + accuracy) {
@@ -327,7 +370,7 @@ void MainWindow::handleParsedPacket()
         case 0x00:
             result(parser.buffer);
             if (isTesting) {
-                sendTimer->start(500);
+                sendTimer->start(200);
                 return;
             }
         case 0x01:

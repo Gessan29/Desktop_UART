@@ -30,7 +30,7 @@ struct protocol_parser {
     }state;
 
     uint8_t buffer[MAX_DATA_SIZE];  // Буфер для хранения данных пакета.
-    size_t buffer_length;         // Количество принятых байт данных.
+    size_t buffer_length;           // Количество принятых байт данных.
     uint16_t data_size;             // Размер полезных данных, полученный из пакета с учетом DATA_SIZE_OFFSET.
     uint8_t cmd;                    // Команда пакета.
     uint16_t crc;                   // Накопленная контрольная сумма.

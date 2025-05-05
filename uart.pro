@@ -1,4 +1,4 @@
-QT       += core gui serialport
+QT       += core gui serialport printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -12,12 +12,14 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     protocol_parser.cpp \
+    qcustomplot.cpp \
     uart.cpp
 
 
 HEADERS += \
     mainwindow.h \
     protocol_parser.h \
+    qcustomplot.h \
     uart.h
 
 FORMS += \

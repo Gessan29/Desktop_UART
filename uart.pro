@@ -17,6 +17,7 @@ SOURCES += \
 
 
 HEADERS += \
+    customdialog.h \
     mainwindow.h \
     protocol_parser.h \
     qcustomplot.h \

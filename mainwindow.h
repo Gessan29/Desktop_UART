@@ -5,8 +5,12 @@
 #include <QSerialPort>
 #include <QSerialPortInfo>
 #include <QVector>
-#include "protocol_parser.h"
 
+#include <QMessageBox>
+#include <QString>
+#include <QWidget>
+#include "protocol_parser.h"
+#include "customdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -36,11 +40,11 @@ private slots:
     void result(uint8_t* packet);
     void handleCaseCommon(uint16_t sample, const QString& labelText);
     void plotAdcData(const QByteArray& byteArray);
-    void showDialog();
     void setupPort();
     void setupPlot();
     void setupConnections();
     void onResponseTimeout();
+    void closeTest();
     void logHtml(const QString& message);
     void logPlain(const QString& message);
 private:
@@ -56,4 +60,5 @@ private:
     void sendPacket(uint8_t cmd, uint8_t status, uint8_t value);
 
 };
+
 #endif // MAINWINDOW_H

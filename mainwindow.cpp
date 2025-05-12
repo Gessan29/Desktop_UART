@@ -118,8 +118,8 @@ void MainWindow::startTesting()
         {0x00, 0x06},
         {0x00, 0x08},
         {0x01, 0x09, 0x0A, 0x00, 0x00, 0x00},
-        {0x01, 0x09, 0x0B, 0x00, 0x00, 0x00}
-        /*{0x01, 0x09, 0x0C, 0x00, 0x00, 0x00},
+        /*{0x01, 0x09, 0x0B, 0x00, 0x00, 0x00}
+        {0x01, 0x09, 0x0C, 0x00, 0x00, 0x00},
         {0x01, 0x09, 0x0D, 0x00, 0x00, 0x00},
         {0x01, 0x09, 0x0E, 0x00, 0x00, 0x00},
         {0x01, 0x09, 0x0F, 0x00, 0x00, 0x00},
@@ -127,8 +127,14 @@ void MainWindow::startTesting()
         {0x01, 0x09, 0x11, 0x00, 0x00, 0x00},
         {0x01, 0x09, 0x12, 0x00, 0x00, 0x00},
         {0x01, 0x09, 0x13, 0x00, 0x00, 0x00}*/
+        // 26 пункт и далее:
+        {0x01, 0x00, 0x00, 0x00, 0x00, 0x00},
+        {0x01, 0x07, 0x01, 0x00, 0x00, 0x00},
+        {0x01, 0x00, 0x01, 0x00, 0x00, 0x00},
+        {0x01, 0x02, 0x00, 0x00, 0x00, 0x00},
+        {0x01, 0x02, 0x01, 0x00, 0x00, 0x00}
     };
-    ui->plainTextEdit->appendHtml("<font color='orange'>Тестирование запущено</font><br>");
+    logHtml("<font color='orange'>Тестирование запущено</font><br>");
     sendNextPacket();
 }
 
@@ -236,7 +242,7 @@ void MainWindow::result(uint8_t* packet){
     case 3:
     case 4:
     case 11:
-        ui->plainTextEdit->appendHtml("<font color='green'>Выполнено!</font><br>");
+        logHtml("<font color='green'>Выполнено!</font><br>");
         return;
 
     case 5:
@@ -251,10 +257,10 @@ void MainWindow::result(uint8_t* packet){
         data = 0; // (parser.buffer[2] << 8) | parser.buffer[1];
 
         if (data >= sample - tok || data <= sample + tok){
-            ui->plainTextEdit->appendHtml(QString("<font color='green'>Измерено: %1 мА — Ток питания платы допустим</font><br>").arg(data));
+            logHtml(QString("<font color='green'>Измерено: %1 мА — Ток питания платы допустим</font><br>").arg(data));
         }
         else {
-            ui->plainTextEdit->appendHtml(QString("<font color='red'>Измерено: %1 мАЫ — Ток питания платы не допустим</font><br>").arg(data));
+           logHtml(QString("<font color='red'>Измерено: %1 мАЫ — Ток питания платы не допустим</font><br>").arg(data));
             closeTest();
            }
         return;
@@ -306,17 +312,17 @@ void MainWindow::result(uint8_t* packet){
         responseTimer->stop();
         CustomDialog dialog_1(this,"Выполните условие", "Прошейте МК и ПЛИС","Ок","Не удалось прошить"); // Добавить фунцию
         if (dialog_1.exec()) {
-                ui->plainTextEdit->appendHtml("<font color='green'>МК и ПЛИС прошиты. Продолжение теста...</font><br>");
+                logHtml("<font color='green'>МК и ПЛИС прошиты. Продолжение теста...</font><br>");
             } else {
-                ui->plainTextEdit->appendHtml("<font color='red'>МК и ПЛИС не прошиты.</font><br>");
+                logHtml("<font color='red'>МК и ПЛИС не прошиты.</font><br>");
                 closeTest();
                 return;
             }
         CustomDialog dialog_2(this, "Сообщение","Отправьте команду плате АЦМ","Ок","Не удалось отправить"); // Добавить фунцию
         if (dialog_2.exec()) {
-                ui->plainTextEdit->appendHtml("<font color='green'>Команда плате АЦМ отправлена. Продолжение теста...</font><br>");
+                logHtml("<font color='green'>Команда плате АЦМ отправлена. Продолжение теста...</font><br>");
             } else {
-                ui->plainTextEdit->appendHtml("<font color='red'>Команда плате АЦМ не отправлена.</font><br>");
+                logHtml("<font color='red'>Команда плате АЦМ не отправлена.</font><br>");
                 closeTest();
                 return;
             }
@@ -327,9 +333,9 @@ void MainWindow::result(uint8_t* packet){
     case 26: {
         CustomDialog dialog_3(this, "Установка параметров","Установите форму тока лазера","Ок","Не удалось установить параметры"); // Добавить фунцию
         if (dialog_3.exec()) {
-                ui->plainTextEdit->appendHtml("<font color='green'>Форма тока лазера установлена. Продолжение теста...</font>");
+                logHtml("<font color='green'>Форма тока лазера установлена. Продолжение теста...</font>");
             } else {
-                ui->plainTextEdit->appendHtml("<font color='red'>Форма тока лазера не установлена.</font><br>");
+                logHtml("<font color='red'>Форма тока лазера не установлена.</font><br>");
                 closeTest();
                 return;
             }
@@ -341,16 +347,16 @@ void MainWindow::result(uint8_t* packet){
         std::vector<int> temperatures = {28, 22, 55, -5};
         if (i < temperatures.size()) {
                int targetTemp = temperatures[i];
-               ui->plainTextEdit->appendHtml(QString("Установить температуру %1 градусов:</font>").arg(targetTemp)); // Добавить фунцию
-               ui->plainTextEdit->appendHtml(QString("<font color='green'>Температура %1 градусов установлена</font>").arg(targetTemp));
+               logHtml(QString("Установить температуру %1 градусов:</font>").arg(targetTemp)); // Добавить фунцию
+               logHtml(QString("<font color='green'>Температура %1 градусов установлена</font>").arg(targetTemp));
                handleCaseCommon(0, "Ток элемента Пельтье");
            }
          }
-        ui->plainTextEdit->appendHtml("Установить температуру 25 градусов:</font>"); // Добавить фунцию
-        ui->plainTextEdit->appendHtml("<font color='green'>Температура 25 градусов установлена</font><br>");
+        logHtml("Установить температуру 25 градусов:</font>"); // Добавить фунцию
+        logHtml("<font color='green'>Температура 25 градусов установлена</font><br>");
         return; }
     case 28:
-        ui->plainTextEdit->appendHtml("<font color='green'>Тестирование RS-232 успешно пройдено</font><br>");
+        logHtml("<font color='green'>Тестирование RS-232 успешно пройдено</font><br>");
         return;
     case 29:
     /*case 30: //еще 9 измерений для GPS не забыть вернуть, сейчас только одно
@@ -363,15 +369,30 @@ void MainWindow::result(uint8_t* packet){
     case 37:
     case 38:*/
         sendTimer->start(1000);
-        if (currentPacketIndex == 39){ // поменять на 38
-        ui->plainTextEdit->appendHtml("<font color='green'>Тестирование GPS успешно пройдено</font><br>"); }
+        if (currentPacketIndex == 29){ // поменять на 38
+        logHtml("<font color='green'>Тестирование GPS успешно пройдено</font><br>"); }
+        return;
+    case 30:
+        logHtml("<font color='green'>Выполнено!</font><br>");
+        return;
+    case 31:
+        logHtml("<font color='green'>Выполнено!</font><br>");
+        return;
+    case 32:
+        logHtml("<font color='green'>Выполнено!</font><br>");
+        sendTimer->stop();
+        responseTimer->stop();
+        CustomDialog dialog_4(this, "Проверка","Ожидание ответа от пользователя","Продолжить"); // Добавить фунцию
+        dialog_4.exec();
+        logHtml("<font color='green'>Тестирование успешно пройдено!</font><br>");
+        closeTest();
         return;
     }
 }
 
 void MainWindow::plotAdcData(const QByteArray& byteArray) {
     if (byteArray.size() < 201) {
-        ui->plainTextEdit->appendHtml("<font color='red'>Недостаточно данных для построения графика</font><br>");
+        logHtml("<font color='red'>Недостаточно данных для построения графика</font><br>");
         return;
     }
     QVector<double> x(100), y(100);
@@ -396,7 +417,7 @@ void MainWindow::plotAdcData(const QByteArray& byteArray) {
        ui->customPlot->xAxis->setRange(0, 99);
        ui->customPlot->yAxis->setRange(0, 3.3);
        ui->customPlot->replot();
-       ui->plainTextEdit->appendHtml("<font color='green'>Снятно 100 точек напряжений, построен график.</font><br>");
+       logHtml("<font color='green'>Снятно 100 точек напряжений, построен график.</font><br>");
 }
 
 void MainWindow::handleCaseCommon(uint16_t sample, const QString& labelText)
@@ -406,11 +427,9 @@ void MainWindow::handleCaseCommon(uint16_t sample, const QString& labelText)
     double volts = data / 1000.0;
 
     if (data >= sample - accuracy && data <= sample + accuracy) {
-        ui->plainTextEdit->appendHtml(
-        QString("<font color='green'>Измерено: %1 В — %2 напряжение допустимо</font><br><br>").arg(QString::number(volts, 'f', 3)).arg(labelText));
+        logHtml(QString("<font color='green'>Измерено: %1 В — %2 напряжение допустимо</font><br><br>").arg(QString::number(volts, 'f', 3)).arg(labelText));
     } else {
-        ui->plainTextEdit->appendHtml(
-        QString("<font color='red'>Измерено: %1 В — %2 напряжение превышает диапазон</font><br><br>").arg(QString::number(volts, 'f', 3)).arg(labelText));
+        logHtml(QString("<font color='red'>Измерено: %1 В — %2 напряжение превышает диапазон</font><br><br>").arg(QString::number(volts, 'f', 3)).arg(labelText));
         closeTest();
     }
 }
@@ -427,28 +446,28 @@ void MainWindow::handleParsedPacket()
                 return;
             }
         case 0x01:
-            ui->plainTextEdit->appendHtml("<font color='red'>Ошибка выполнения команды (код ошибки: 0x01)</font><br>");
+            logHtml("<font color='red'>Ошибка выполнения команды (код ошибки: 0x01)</font><br>");
             result(parser.buffer);
             if (isTesting) {
                 closeTest();
                 return; }
         case 0x02:
-            ui->plainTextEdit->appendHtml("<font color='red'>Несуществующая команда (код ошибки: 0x02)</font><br>");
+            logHtml("<font color='red'>Несуществующая команда (код ошибки: 0x02)</font><br>");
             closeTest();
             break;
         case 0x03:
-            ui->plainTextEdit->appendHtml("<font color='red'>Превышено время выполнения команды (код ошибки: 0x03)</font><br>");
+           logHtml("<font color='red'>Превышено время выполнения команды (код ошибки: 0x03)</font><br>");
             closeTest();
             break;
         case 0x04:
-            ui->plainTextEdit->appendHtml("<font color='red'>Ошибка размера данных команды (код ошибки: 0x04)</font><br>");
+            logHtml("<font color='red'>Ошибка размера данных команды (код ошибки: 0x04)</font><br>");
             closeTest();
             break;
         }
 }
 
 void MainWindow::closeTest(){
-    ui->plainTextEdit->appendHtml("<font color='red'>Завершение тестирования...</font>");
+    logHtml("<font color='red'>Завершение тестирования...</font>");
     if (!emergencyStopTriggered) {
                emergencyStopTriggered = true;
 
@@ -459,7 +478,7 @@ void MainWindow::closeTest(){
                };
 
                currentPacketIndex = 0;
-               ui->plainTextEdit->appendHtml("<font color='orange'>Повтор команд для отключения питания...</font><br>");
+               logHtml("<font color='orange'>Повтор команд для отключения питания...</font><br>");
                sendTimer->start(100);
                return;
            }
@@ -468,7 +487,7 @@ void MainWindow::closeTest(){
 
 void MainWindow::handleParserError()
 {
-    ui->plainTextEdit->appendHtml("<font color='red'>Ошибка разбора пакета</font><br>");
+    logHtml("<font color='red'>Ошибка разбора пакета</font><br>");
     parser.state = protocol_parser::STATE_SYNC;
 }
 
@@ -481,7 +500,7 @@ void MainWindow::stopTesting()
     emergencyStopTriggered = false;
     currentPacketIndex = 0;
     ui->pushButton->setText("Начать тестирование");
-    ui->plainTextEdit->appendHtml("<font color='orange'><br>Тестирование завершено</font><br>");
+    logHtml("<font color='orange'><br>Тестирование завершено</font><br>");
 }
 
 void MainWindow::on_cleabutt_clicked()

@@ -18,14 +18,27 @@ public:
           dialogTitle(title),
           dialogMessage(message),
           acceptButtonText(acceptText),
-          rejectButtonText(rejectText) {}
+          rejectButtonText(rejectText),
+          butt(true) {}
+
+    CustomDialog(QWidget *parent,
+                 const QString &title,
+                 const QString &message,
+                 const QString &acceptText)
+        : parentWidget(parent),
+          dialogTitle(title),
+          dialogMessage(message),
+          acceptButtonText(acceptText),
+          butt(false) {}
 
     bool exec() {
         QMessageBox msgBox(parentWidget);
         msgBox.setWindowTitle(dialogTitle);
         msgBox.setText(dialogMessage);
         QAbstractButton *btnAccept = msgBox.addButton(acceptButtonText, QMessageBox::AcceptRole);
+        if (butt){
         QAbstractButton *btnReject = msgBox.addButton(rejectButtonText, QMessageBox::RejectRole);
+        }
         msgBox.exec();
         return msgBox.clickedButton() == btnAccept;
     }
@@ -36,6 +49,7 @@ private:
     QString dialogMessage;
     QString acceptButtonText;
     QString rejectButtonText;
+    bool butt;
 };
 
 #endif // CUSTOMDIALOG_H
